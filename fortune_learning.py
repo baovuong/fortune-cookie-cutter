@@ -1,3 +1,5 @@
+from random import randrange
+
 class NGram:
     def __init__(self, words, size=0):
         self.words = words
@@ -41,3 +43,19 @@ class MarkovState:
             self.transitions[state] += 1
         else:
             self.transitions[state] = 1
+
+    def count(self):
+        c = 0
+        for key in self.transitions:
+            c += self.transitions[key]
+        return c
+
+    def transition(self, steps=None):
+        steps = randrange(self.count()) if steps == None else steps
+        i = 0
+        states = self.transitions.keys()
+        while steps > 0:
+            if self.transitions[states[i]] <= steps:
+                i += 1
+            steps -= self.transitions[states[i]]
+        return states[i]
