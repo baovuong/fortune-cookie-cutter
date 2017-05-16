@@ -38,13 +38,13 @@ class MarkovState:
     def __hash__(self):
         return hash(self.value)
     
-        def count(self):
+    def count(self):
         c = 0
         for key in self.transitions:
             c += self.transitions[key]
         return c
     
-    def add_transition(self, state):
+    def connect(self, state):
         if state in self.transitions:
             self.transitions[state] += 1
         else:
@@ -66,3 +66,16 @@ class MarkovState:
                 i += 1
             steps -= self.transitions[states[i]]
         return states[i]
+
+def ngrams_from_words(words, n=2):
+    words.insert(0, '<START>')
+    words.append('<END>')
+    
+    ngrams = []
+    for i in range(0, len(words)):
+        ngrams = NGram(words[])
+    
+
+if __name__ == '__main__':
+    test = 'this is a test sentence'
+    ngrams = ngrams_from_words(test.split(' '))
