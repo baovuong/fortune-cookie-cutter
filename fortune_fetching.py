@@ -2,12 +2,15 @@ from lxml import html
 import requests
 
 url = 'http://www.kcfortunecookiefactory.com/fortunes'
+
 tree_from_url = lambda url, params=None : html.fromstring(requests.get(url, params).content)
-fetch_fortunes = lambda page_number : tree_from_url(url, {'page': page_number}).xpath('//div[@class=\"item-list\"]/ul/li/span/text()')
+fetch_fortunes = lambda page_number : tree_from_url(url, {'page': page_number})
+    .xpath('//div[@class=\"item-list\"]/ul/li/span/text()')
 
 fortunes = []
 
-count = int(tree_from_url(url).xpath('//div[@class=\"item-list"]/ul[@class=\"pager\"]/li[@class=\"pager-current\"]/text()')[0].split(' ')[2])
+count = int(tree_from_url(url)
+    .xpath('//div[@class=\"item-list"]/ul[@class=\"pager\"]/li[@class=\"pager-current\"]/text()')[0].split(' ')[2])
 
 
 
