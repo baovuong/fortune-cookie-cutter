@@ -37,18 +37,25 @@ class MarkovState:
 
     def __hash__(self):
         return hash(self.value)
-
+    
+        def count(self):
+        c = 0
+        for key in self.transitions:
+            c += self.transitions[key]
+        return c
+    
     def add_transition(self, state):
         if state in self.transitions:
             self.transitions[state] += 1
         else:
             self.transitions[state] = 1
+            
+    def delete_transition(self, state):
+        if state in self.transitions:
+            self.transitions[state] -= 1
+            if self.transitions[state] <= 0:
+                del self.transitions[state]
 
-    def count(self):
-        c = 0
-        for key in self.transitions:
-            c += self.transitions[key]
-        return c
 
     def transition(self, steps=None):
         steps = randrange(self.count()) if steps == None else steps
