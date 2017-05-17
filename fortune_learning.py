@@ -42,13 +42,30 @@ class MarkovState:
         return states[i]
 
 class MarkovChain:
-    
+
     def __init__(self, root):
         self.states = []
         self.root = root
-    
-    def add_state(self, parent):
-        pass 
+
+    def add_state(self, new_state, prev=None):
+        # check if prev is an existing state
+        if prev == None:
+            self.states.append(new_state)
+            self.root = new_state
+        elif prev not in self.states:
+            return
+
+        # look for prev
+        for state in self.states:
+            if prev == state:
+                state.connect(new_state)
+                if new_state not in self.states:
+                    self.states.append(new_state)
+
+
+
+
+
 
 class NGram:
     def __init__(self, words, size=0):
@@ -76,14 +93,15 @@ class NGram:
 
     def __hash__(self):
         return hash(str(self))
-    
+
     def can_transition_to(self, other):
         if len(self) != len(other):
-            return False 
+            return False
         return self.words[:-1] == other.words[1:]
 
 class NGramModel(MarkovChain):
-    pass 
+    pass
+
 def words_from_sentence(sentence):
     words = word_tokenize(sentence)
     words.insert(0, '<START>')
