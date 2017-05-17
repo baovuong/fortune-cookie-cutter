@@ -1,31 +1,5 @@
+from nltk import word_tokenize
 from random import randrange
-
-class NGram:
-    def __init__(self, words, size=0):
-        self.words = words
-        while size > len(self.words):
-            self.words.insert(0, '<NULL>')
-
-    def size(self):
-        return len(self.words)
-
-    __len__ = size
-
-    def __eq__(self, other):
-        if len(self) != len(other):
-            return False
-        for i in range(0, self.size()):
-            if self.words[i] != other.words[i]:
-                return False
-        return True
-
-    def __str__(self):
-        return '(' + ' '.join(self.words) + ')'
-
-    __repr__ = __str__
-
-    def __hash__(self):
-        return hash(str(self))
 
 class MarkovState:
     def __init__(self, value):
@@ -67,8 +41,51 @@ class MarkovState:
             steps -= self.transitions[states[i]]
         return states[i]
 
+class MarkovChain:
+    
+    def __init__(self, root):
+        self.states = []
+        self.root = root
+    
+    def add_state(self, parent):
+        pass 
+
+class NGram:
+    def __init__(self, words, size=0):
+        self.words = words
+        while size > len(self.words):
+            self.words.insert(0, '<NULL>')
+
+    def size(self):
+        return len(self.words)
+
+    __len__ = size
+
+    def __eq__(self, other):
+        if len(self) != len(other):
+            return False
+        for i in range(0, self.size()):
+            if self.words[i] != other.words[i]:
+                return False
+        return True
+
+    def __str__(self):
+        return '(' + ' '.join(self.words) + ')'
+
+    __repr__ = __str__
+
+    def __hash__(self):
+        return hash(str(self))
+    
+    def can_transition_to(self, other):
+        if len(self) != len(other):
+            return False 
+        return self.words[:-1] == other.words[1:]
+
+class NGramModel(MarkovChain):
+    pass 
 def words_from_sentence(sentence):
-    words = sentence.split(' ')
+    words = word_tokenize(sentence)
     words.insert(0, '<START>')
     words.append('<END>')
     return words
@@ -80,8 +97,10 @@ def ngrams_from_words(words, n=2):
     return ngrams
 
 
+
 if __name__ == '__main__':
-    test = 'this is a test sentence'
+    test = 'watashi wa bitch desu.'
+    print(test)
     ngrams = ngrams_from_words(words_from_sentence(test))
     for ngram in ngrams:
         print(ngram)
