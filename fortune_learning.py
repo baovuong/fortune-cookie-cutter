@@ -1,3 +1,4 @@
+import json
 from nltk import word_tokenize
 from random import randrange
 
@@ -7,10 +8,14 @@ class MarkovState:
         self.transitions = {}
 
     def __eq__(self, other):
-        return self.value == other.value
+        return type(other) is MarkovState and self.value == other.value
 
     def __hash__(self):
         return hash(self.value)
+
+    def __iter__(self):
+        yield 'id', hash(self)
+        yield 'value', dict(self.value)
 
     def count(self):
         c = 0
@@ -43,16 +48,16 @@ class MarkovState:
 
 class MarkovChain:
 
-    def __init__(self, root):
+    def __init__(self, root=None):
         self.states = []
         self.root = root
 
     def add_state(self, new_state, prev=None):
         # check if prev is an existing state
+        prev = self.root if prev == None else prev
         if prev == None:
             self.states.append(new_state)
             self.root = new_state
-        elif prev not in self.states:
             return
 
         # look for prev
@@ -62,12 +67,17 @@ class MarkovChain:
                 if new_state not in self.states:
                     self.states.append(new_state)
 
+    def __iter__(self):
+        states = []
+        transitions = []
+        for state in self.states:
+            states.append(dict(state))
+            for transition in state.transitions:
+                transitions.append({'from': hash(state), 'to': hash(transition), 'count': state.transitions[transition]})
+        yield 'states', states
+        yield 'transitions', transitions
 
-
-
-
-
-class NGram:
+class NGram(object):
     def __init__(self, words, size=0):
         self.words = words
         while size > len(self.words):
@@ -79,7 +89,8 @@ class NGram:
     __len__ = size
 
     def __eq__(self, other):
-        if len(self) != len(other):
+
+        if type(other) is not NGram or len(self) != len(other):
             return False
         for i in range(0, self.size()):
             if self.words[i] != other.words[i]:
@@ -93,6 +104,9 @@ class NGram:
 
     def __hash__(self):
         return hash(str(self))
+
+    def __iter__(self):
+        yield 'words', self.words
 
     def can_transition_to(self, other):
         if len(self) != len(other):
@@ -117,8 +131,10 @@ def ngrams_from_words(words, n=2):
 
 
 if __name__ == '__main__':
-    test = 'watashi wa bitch desu.'
+    test = 'Hello. My name is Bao.'
     print(test)
     ngrams = ngrams_from_words(words_from_sentence(test))
+    model = MarkovChain()
     for ngram in ngrams:
-        print(ngram)
+        model.add_state(MarkovState(ngram))
+    print(json.dumps(dict(model), indent=2))
