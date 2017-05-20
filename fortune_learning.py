@@ -3,6 +3,7 @@ from nltk import word_tokenize
 from random import randrange
 
 class MarkovState:
+
     def __init__(self, value):
         self.value = value
         self.transitions = {}
@@ -14,7 +15,6 @@ class MarkovState:
         return hash(self.value)
 
     def __iter__(self):
-        yield 'id', hash(self)
         yield 'value', dict(self.value)
 
     def count(self):
@@ -68,16 +68,17 @@ class MarkovChain:
                     self.states.append(new_state)
 
     def __iter__(self):
-        states = []
+        states = {}
         transitions = []
         for state in self.states:
-            states.append(dict(state))
+            states[hash(state)] = dict(state)
             for transition in state.transitions:
                 transitions.append({'from': hash(state), 'to': hash(transition), 'count': state.transitions[transition]})
         yield 'states', states
         yield 'transitions', transitions
 
-class NGram(object):
+class NGram:
+
     def __init__(self, words, size=0):
         self.words = words
         while size > len(self.words):
@@ -111,10 +112,19 @@ class NGram(object):
     def can_transition_to(self, other):
         if len(self) != len(other):
             return False
-        return self.words[:-1] == other.words[1:]
+        return self.words[1:] == other.words[:-1]
 
 class NGramModel(MarkovChain):
-    pass
+
+    def __init__(self, n=2):
+        super().__init__(MarkovState(NGram(['<START>'], n)))
+
+    def add_state(state):
+        # look for the state it can connect to
+        pass
+
+    def add_ngram(ngram):
+        self.add_state(MarkovState(ngram))
 
 def words_from_sentence(sentence):
     words = word_tokenize(sentence)
@@ -138,3 +148,10 @@ if __name__ == '__main__':
     for ngram in ngrams:
         model.add_state(MarkovState(ngram))
     print(json.dumps(dict(model), indent=2))
+    one = NGram(['one', 'two', 'three'])
+    two = NGram(['two', 'three', 'five'])
+    three = NGram(['one', 'three', 'five'])
+    print(one.can_transition_to(two))
+    print(two.can_transition_to(three))
+    model2 = NGramModel()
+    print(model2.root.value)
