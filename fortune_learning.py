@@ -2,6 +2,10 @@ import json
 from nltk import word_tokenize
 from random import randrange
 
+# bigrams by default
+DEFAULT_SIZE = 2
+
+
 class MarkovState:
 
     def __init__(self, value):
@@ -39,7 +43,7 @@ class MarkovState:
     def transition(self, steps=None):
         steps = randrange(self.count()) if steps == None else steps
         i = 0
-        states = self.transitions.keys()
+        states = list(self.transitions.keys())
         while steps > 0:
             if self.transitions[states[i]] <= steps:
                 i += 1
@@ -48,9 +52,9 @@ class MarkovState:
 
 class MarkovChain:
 
-    def __init__(self, root=None):
-        self.states = []
+    def __init__(self, root=None):        
         self.root = root
+        self.states = [self.root]
 
     def add_state(self, new_state, prev=None):
         # check if prev is an existing state
@@ -79,7 +83,7 @@ class MarkovChain:
 
 class NGram:
 
-    def __init__(self, words, size=0):
+    def __init__(self, words, size=DEFAULT_SIZE):
         self.words = words
         while size > len(self.words):
             self.words.insert(0, '<NULL>')
@@ -113,17 +117,23 @@ class NGram:
         if len(self) != len(other):
             return False
         return self.words[1:] == other.words[:-1]
+    
+    def word(self):
+        return self.words[len(self.words)-1] if len(self.words) > 0 else '' 
 
 class NGramModel(MarkovChain):
 
-    def __init__(self, n=2):
+    def __init__(self, n=DEFAULT_SIZE):
         super().__init__(MarkovState(NGram(['<START>'], n)))
 
-    def add_state(state):
+    def add_state(self, state):
         # look for the state it can connect to
-        pass
+        valid = [s for s in self.states if s.value.can_transition_to(state.value)]
+        if len(valid) == 0:
+            return      
+        super().add_state(state, valid[0])
 
-    def add_ngram(ngram):
+    def add_ngram(self, ngram):
         self.add_state(MarkovState(ngram))
 
 def words_from_sentence(sentence):
@@ -132,26 +142,37 @@ def words_from_sentence(sentence):
     words.append('<END>')
     return words
 
-def ngrams_from_words(words, n=2):
+def ngrams_from_words(words, n=DEFAULT_SIZE):
     ngrams = []
     for i in range(0, len(words)):
         ngrams.append(NGram(words[max(0, i-n+1):i+1], n))
     return ngrams
 
+def ngrammodel_from_dict(structure):
+    model = NGramModel()
+    
+    return model
 
 
 if __name__ == '__main__':
     test = 'Hello. My name is Bao.'
+    test2 = 'Hello. My name is Poop.'
     print(test)
     ngrams = ngrams_from_words(words_from_sentence(test))
-    model = MarkovChain()
+    ngrams2 = ngrams_from_words(words_from_sentence(test2))
+    model = NGramModel()
+    print(ngrams)
     for ngram in ngrams:
-        model.add_state(MarkovState(ngram))
-    print(json.dumps(dict(model), indent=2))
-    one = NGram(['one', 'two', 'three'])
-    two = NGram(['two', 'three', 'five'])
-    three = NGram(['one', 'three', 'five'])
-    print(one.can_transition_to(two))
-    print(two.can_transition_to(three))
-    model2 = NGramModel()
-    print(model2.root.value)
+        model.add_ngram(ngram)
+    print([s.value for s in model.states])
+    for ngram in ngrams2:
+        model.add_ngram(ngram)
+    sentence = []
+    current = model.root
+    while len(current.transitions) > 0 and current.value.word() != '<END>':
+        print(current.value)
+        sentence.append(current.value.word())
+        current = current.transition()
+    print(sentence)
+    print(json.dumps(dict(model), sort_keys=True,indent=4, separators=(',', ': ')))
+    
