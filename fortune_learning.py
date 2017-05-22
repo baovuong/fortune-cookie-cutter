@@ -33,7 +33,7 @@ class MarkovState:
         else:
             self.transitions[state] = 1
 
-    def delete_transition(self, state):
+    def disconnect(self, state):
         if state in self.transitions:
             self.transitions[state] -= 1
             if self.transitions[state] <= 0:
@@ -126,15 +126,18 @@ class NGramModel(MarkovChain):
     def __init__(self, n=DEFAULT_SIZE):
         super().__init__(MarkovState(NGram(['<START>'], n)))
 
-    def add_state(self, state):
+    def add_state(self, new_state, prev_state=None):
         # look for the state it can connect to
+        prev_state = self.root if prev_state == None else prev_state;
         valid = [s for s in self.states if s.value.can_transition_to(state.value)]
+        if prev_state.value.can_transition_to(new_state.value):
+            super().add(new_state, prev_state)
         if len(valid) == 0:
             return      
         super().add_state(state, valid[0])
 
-    def add_ngram(self, ngram):
-        self.add_state(MarkovState(ngram))
+    def add_ngram(self, new_value, prev_value=None):
+        self.add_state(MarkovState(new_value), MarkovState(prev_value) if prev_value != None else None)
 
 def words_from_sentence(sentence):
     words = word_tokenize(sentence)
@@ -148,25 +151,22 @@ def ngrams_from_words(words, n=DEFAULT_SIZE):
         ngrams.append(NGram(words[max(0, i-n+1):i+1], n))
     return ngrams
 
-def ngrammodel_from_dict(structure):
-    model = NGramModel()
-    
-    return model
+def ngrams_from_dict(structure):
+    pass 
+
+def ngrams_from_json(structure):
+    pass 
 
 
 if __name__ == '__main__':
     test = 'Hello. My name is Bao.'
-    test2 = 'Hello. My name is Poop.'
     print(test)
     ngrams = ngrams_from_words(words_from_sentence(test))
-    ngrams2 = ngrams_from_words(words_from_sentence(test2))
     model = NGramModel()
     print(ngrams)
     for ngram in ngrams:
         model.add_ngram(ngram)
     print([s.value for s in model.states])
-    for ngram in ngrams2:
-        model.add_ngram(ngram)
     sentence = []
     current = model.root
     while len(current.transitions) > 0 and current.value.word() != '<END>':
@@ -174,5 +174,5 @@ if __name__ == '__main__':
         sentence.append(current.value.word())
         current = current.transition()
     print(sentence)
-    print(json.dumps(dict(model), sort_keys=True,indent=4, separators=(',', ': ')))
+    print(json.dumps(model.states, sort_keys=True,indent=2, separators=(',', ': ')))
     
