@@ -52,7 +52,7 @@ class MarkovState:
 
 class MarkovChain:
 
-    def __init__(self, root=None):        
+    def __init__(self, root=None):
         self.root = root
         self.states = [self.root]
 
@@ -80,6 +80,7 @@ class MarkovChain:
                 transitions.append({'from': hash(state), 'to': hash(transition), 'count': state.transitions[transition]})
         yield 'states', states
         yield 'transitions', transitions
+        yield 'root', hash(self.root)
 
 class NGram:
 
@@ -117,9 +118,9 @@ class NGram:
         if len(self) != len(other):
             return False
         return self.words[1:] == other.words[:-1]
-    
+
     def word(self):
-        return self.words[len(self.words)-1] if len(self.words) > 0 else '' 
+        return self.words[len(self.words)-1] if len(self.words) > 0 else ''
 
 class NGramModel(MarkovChain):
 
@@ -129,15 +130,20 @@ class NGramModel(MarkovChain):
     def add_state(self, new_state, prev_state=None):
         # look for the state it can connect to
         prev_state = self.root if prev_state == None else prev_state;
-        valid = [s for s in self.states if s.value.can_transition_to(state.value)]
+        valid = [s for s in self.states if s.value.can_transition_to(new_state.value)]
         if prev_state.value.can_transition_to(new_state.value):
-            super().add(new_state, prev_state)
+            super().add_state(new_state, prev_state)
         if len(valid) == 0:
-            return      
-        super().add_state(state, valid[0])
+            return
+        super().add_state(new_state, valid[0])
 
     def add_ngram(self, new_value, prev_value=None):
         self.add_state(MarkovState(new_value), MarkovState(prev_value) if prev_value != None else None)
+
+    def __iter__(self):
+        for i in super().__iter__():
+            yield i
+        yield 'gram_size', len(self.root.value)
 
 def words_from_sentence(sentence):
     words = word_tokenize(sentence)
@@ -152,11 +158,30 @@ def ngrams_from_words(words, n=DEFAULT_SIZE):
     return ngrams
 
 def ngrams_from_dict(structure):
-    pass 
+    if  'gram_size' not in structure:
+        return None
+
+    model = NGramModel(structure['gram_size'])
+
+    if 'states' not in structure:
+        return model
+
+    model.states = [MarkovState(NGram(state['words'], structure['gram_size'])) for state in structure['states']]
+
+    if 'transitions' not in structure:
+        return model
+
+    for state in model.states:
+        transitions = [x for x in structure['transitions'] if x['from'] == hash(state.value)]
+        connecting_hashes = [(x['to'], x['count']) for x in transitions]
+        for connecting_hash in connecting_hashes:
+            connecting_state = [x for x in model.states if hash(x) == connecting_hash[0]]
+            state.transitions[connecting_state[0]] = connecting_hash[1]
+    return model
+
 
 def ngrams_from_json(structure):
-    pass 
-
+    pass
 
 if __name__ == '__main__':
     test = 'Hello. My name is Bao.'
@@ -174,5 +199,4 @@ if __name__ == '__main__':
         sentence.append(current.value.word())
         current = current.transition()
     print(sentence)
-    print(json.dumps(model.states, sort_keys=True,indent=2, separators=(',', ': ')))
-    
+    print(json.dumps(dict(model), sort_keys=True,indent=2, separators=(',', ': ')))
