@@ -157,7 +157,7 @@ def ngrams_from_words(words, n=DEFAULT_SIZE):
         ngrams.append(NGram(words[max(0, i-n+1):i+1], n))
     return ngrams
 
-def ngrams_from_dict(structure):
+def ngrammodel_from_dict(structure):
     if  'gram_size' not in structure:
         return None
 
