@@ -180,8 +180,8 @@ def ngrammodel_from_dict(structure):
     return model
 
 
-def ngrams_from_json(structure):
-    pass
+def ngrammodel_from_json(structure):
+    return ngrammodel_from_dict(json.loads(structure))
 
 if __name__ == '__main__':
     test = 'Hello. My name is Bao.'
