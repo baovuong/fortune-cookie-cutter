@@ -41,13 +41,19 @@ class MarkovState:
 
 
     def transition(self, steps=None):
+        print('---')
+        print('current:', self.value)
         steps = randrange(self.count()) if steps == None else steps
         i = 0
         states = list(self.transitions.keys())
         while steps > 0:
-            if self.transitions[states[i]] <= steps:
-                i += 1
-            steps -= self.transitions[states[i]]
+            print('steps left:', steps)
+            print('i:', i)
+            print('states:', [state.value for state in states])
+            count = self.transitions[states[i]]
+            if count <= steps:
+                i += 1 if len(self.transitions) > 1 else 0
+            steps -= count
         return states[i]
 
 class MarkovChain:
@@ -126,19 +132,24 @@ class NGramModel(MarkovChain):
 
     def __init__(self, n=DEFAULT_SIZE):
         super().__init__(MarkovState(NGram(['<START>'], n)))
+        self.gram_size = n
 
     def add_state(self, new_state, prev_state=None):
         # look for the state it can connect to
-        prev_state = self.root if prev_state == None else prev_state;
-        valid = [s for s in self.states if s.value.can_transition_to(new_state.value)]
+        prev_state = self.root if prev_state == None else prev_state
         if prev_state.value.can_transition_to(new_state.value):
             super().add_state(new_state, prev_state)
-        if len(valid) == 0:
-            return
-        super().add_state(new_state, valid[0])
 
     def add_ngram(self, new_value, prev_value=None):
         self.add_state(MarkovState(new_value), MarkovState(prev_value) if prev_value != None else None)
+
+    def add_sentence(self, sentence):
+        print('adding \'%s\' to model' % sentence)
+        ngrams = ngrams_from_words(words_from_sentence(sentence), self.gram_size)
+        prev = None
+        for ngram in ngrams:
+            self.add_ngram(ngram, prev)
+            prev = ngram
 
     def __iter__(self):
         for i in super().__iter__():
@@ -179,24 +190,21 @@ def ngrammodel_from_dict(structure):
             state.transitions[connecting_state[0]] = connecting_hash[1]
     return model
 
-
 def ngrammodel_from_json(structure):
     return ngrammodel_from_dict(json.loads(structure))
 
 if __name__ == '__main__':
-    test = 'Hello. My name is Bao.'
-    print(test)
-    ngrams = ngrams_from_words(words_from_sentence(test))
     model = NGramModel()
-    print(ngrams)
-    for ngram in ngrams:
-        model.add_ngram(ngram)
-    print([s.value for s in model.states])
+
+    with open('fortunes.txt') as f:
+        fortunes = [x.strip() for x in f.readlines()]
+    for fortune in fortunes:
+        model.add_sentence(fortune)
     sentence = []
     current = model.root
     while len(current.transitions) > 0 and current.value.word() != '<END>':
-        print(current.value)
         sentence.append(current.value.word())
         current = current.transition()
     print(sentence)
-    print(json.dumps(dict(model), sort_keys=True,indent=2, separators=(',', ': ')))
+    with open('model.json', 'w') as f:
+        f.write(json.dumps(dict(model), sort_keys=True,indent=2, separators=(',', ': ')))
